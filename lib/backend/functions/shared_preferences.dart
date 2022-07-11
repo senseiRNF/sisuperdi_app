@@ -51,4 +51,16 @@ class SPrefs {
 
     return auth;
   }
+
+  Future<bool> deleteAuth() async {
+    bool result = false;
+
+    await init().then((sharedPrefs) async {
+      await sharedPrefs.remove('auth').then((_) {
+        result = true;
+      });
+    });
+
+    return result;
+  }
 }

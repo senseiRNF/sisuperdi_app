@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sisuperdi_app/backend/functions/route_functions.dart';
+import 'package:sisuperdi_app/backend/functions/shared_preferences.dart';
 import 'package:sisuperdi_app/backend/variables/global.dart';
+import 'package:sisuperdi_app/frontend/home_screen.dart';
 import 'package:sisuperdi_app/frontend/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -16,8 +18,20 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    Future.delayed(const Duration(seconds: 2), () {
-      RouteFunctions(context: context).replaceScreen(const LoginScreen());
+    initLoad();
+  }
+
+  void initLoad() async {
+    await SPrefs().readAuth().then((result) {
+      if(result != null) {
+        Future.delayed(const Duration(seconds: 2), () {
+          RouteFunctions(context: context).replaceScreen(const HomeScreen());
+        });
+      } else {
+        Future.delayed(const Duration(seconds: 2), () {
+          RouteFunctions(context: context).replaceScreen(const LoginScreen());
+        });
+      }
     });
   }
 

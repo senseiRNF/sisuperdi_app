@@ -6,6 +6,7 @@ class AuthClass {
   String? nip;
   String? position;
   String? workUnit;
+  String? role;
 
   AuthClass({
     this.userId,
@@ -15,5 +16,6 @@ class AuthClass {
     this.nip,
     this.position,
     this.workUnit,
+    this.role,
   });
 }

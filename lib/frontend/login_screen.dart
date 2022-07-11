@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:sisuperdi_app/backend/class_data/auth_class.dart';
+import 'package:sisuperdi_app/backend/functions/dialog_functions.dart';
 import 'package:sisuperdi_app/backend/functions/route_functions.dart';
+import 'package:sisuperdi_app/backend/services/auth_services.dart';
 import 'package:sisuperdi_app/backend/variables/global.dart';
 import 'package:sisuperdi_app/frontend/home_screen.dart';
 
@@ -94,7 +97,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   ElevatedButton(
                     onPressed: () async {
-                      RouteFunctions(context: context).replaceScreen(const HomeScreen());
+                      await AuthServices().loginUser(
+                        AuthClass(
+                          username: usernameController.text,
+                          password: passwordController.text,
+                        ),
+                      ).then((result) {
+                        if(result) {
+                          RouteFunctions(context: context).replaceScreen(const HomeScreen());
+                        } else {
+                          DialogFunctions(context: context, message: 'Gagal masuk ke sistem, mohon periksa username & password Anda, kemudian coba lagi').okDialog(() {
+
+                          });
+                        }
+                      });
                     },
                     style: ElevatedButton.styleFrom(
                       primary: GlobalColor.btnColor,

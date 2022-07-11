@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sisuperdi_app/backend/class_data/home_icon_class.dart';
+import 'package:sisuperdi_app/backend/functions/dialog_functions.dart';
 import 'package:sisuperdi_app/backend/functions/route_functions.dart';
+import 'package:sisuperdi_app/backend/functions/shared_preferences.dart';
 import 'package:sisuperdi_app/backend/variables/global.dart';
 import 'package:sisuperdi_app/frontend/nppd_screen.dart';
 import 'package:sisuperdi_app/frontend/receipt_screen.dart';
@@ -22,41 +24,72 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
-    setState(() {
-      iconMenu = [
-        HomeIcon(
-          imagePath: '${GlobalString.imagePath}/nppd-icon.png',
-          onPress: () {
-            RouteFunctions(context: context).moveScreen(const NPPDScreen(), (callback) {
+    initLoad();
+  }
 
-            });
-          },
-        ),
-        HomeIcon(
-          imagePath: '${GlobalString.imagePath}/spt-icon.png',
-          onPress: () {
-            RouteFunctions(context: context).moveScreen(const SPTScreen(), (callback) {
+  void initLoad() async {
+    await SPrefs().readAuth().then((result) {
+      if(result != null) {
+        if(result.role == 'pegawai') {
+          setState(() {
+            iconMenu = [
+              HomeIcon(
+                imagePath: '${GlobalString.imagePath}/nppd-icon.png',
+                onPress: () {
+                  RouteFunctions(context: context).moveScreen(const NPPDScreen(), (callback) {
 
-            });
-          },
-        ),
-        HomeIcon(
-          imagePath: '${GlobalString.imagePath}/report-icon.png',
-          onPress: () {
-            RouteFunctions(context: context).moveScreen(const ReportScreen(), (callback) {
+                  });
+                },
+              ),
+              HomeIcon(
+                imagePath: '${GlobalString.imagePath}/spt-icon.png',
+                onPress: () {
+                  RouteFunctions(context: context).moveScreen(const SPTScreen(), (callback) {
 
-            });
-          },
-        ),
-        HomeIcon(
-          imagePath: '${GlobalString.imagePath}/receipt-icon.png',
-          onPress: () {
-            RouteFunctions(context: context).moveScreen(const ReceiptScreen(), (callback) {
+                  });
+                },
+              ),
+              HomeIcon(
+                imagePath: '${GlobalString.imagePath}/report-icon.png',
+                onPress: () {
+                  RouteFunctions(context: context).moveScreen(const ReportScreen(), (callback) {
 
-            });
-          },
-        ),
-      ];
+                  });
+                },
+              ),
+              HomeIcon(
+                imagePath: '${GlobalString.imagePath}/receipt-icon.png',
+                onPress: () {
+                  RouteFunctions(context: context).moveScreen(const ReceiptScreen(), (callback) {
+
+                  });
+                },
+              ),
+            ];
+          });
+        } else {
+          setState(() {
+            iconMenu = [
+              HomeIcon(
+                imagePath: '${GlobalString.imagePath}/nppd-icon.png',
+                onPress: () {
+                  RouteFunctions(context: context).moveScreen(const NPPDScreen(), (callback) {
+
+                  });
+                },
+              ),
+              HomeIcon(
+                imagePath: '${GlobalString.imagePath}/spt-icon.png',
+                onPress: () {
+                  RouteFunctions(context: context).moveScreen(const SPTScreen(), (callback) {
+
+                  });
+                },
+              ),
+            ];
+          });
+        }
+      }
     });
   }
 
@@ -72,9 +105,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           PopupMenuButton(
-            onSelected: (result) {
+            onSelected: (result) async {
               if(result == 'logout') {
-                RouteFunctions(context: context).replaceScreen(const SplashScreen());
+                DialogFunctions(context: context, message: 'Keluar dari sesi saat ini, Anda yakin?').optionDialog(() async {
+                  await SPrefs().deleteAuth().then((authResult) {
+                    if(authResult) {
+                      RouteFunctions(context: context).replaceScreen(const SplashScreen());
+                    }
+                  });
+                }, () {
+
+                });
               }
             },
             itemBuilder: (BuildContext menuContext) => <PopupMenuEntry> [
