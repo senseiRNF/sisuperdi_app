@@ -1,6 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:sisuperdi_app/backend/class_data/auth_class.dart';
 import 'package:sisuperdi_app/backend/class_data/responseAPI/report_response.dart';
+import 'package:sisuperdi_app/backend/functions/dialog_functions.dart';
 import 'package:sisuperdi_app/backend/functions/route_functions.dart';
 import 'package:sisuperdi_app/backend/functions/shared_preferences.dart';
 import 'package:sisuperdi_app/backend/services/report_services.dart';
@@ -45,6 +52,97 @@ class _ReportScreenState extends State<ReportScreen> {
         });
       });
     });
+  }
+
+  void generatePDF(ReportResponseData dataResponse) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            children: [
+              pw.Text(
+                "Laporan Perjalan Dinas",
+                style: pw.TextStyle(
+                  fontSize: 20.0,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(
+                height: 20.0,
+              ),
+              pw.Divider(),
+              pw.SizedBox(
+                height: 20.0,
+              ),
+              pw.Text(
+                "Tanggal: ${dataResponse.tanggal!}",
+                style: const pw.TextStyle(
+                  fontSize: 16.0,
+                ),
+                textAlign: pw.TextAlign.left,
+              ),
+              pw.Text(
+                "Nama: ${dataResponse.nama!}",
+                style: const pw.TextStyle(
+                  fontSize: 16.0,
+                ),
+                textAlign: pw.TextAlign.left,
+              ),
+              pw.SizedBox(
+                height: 20.0,
+              ),
+              pw.Text(
+                "Hasil",
+                style: const pw.TextStyle(
+                  fontSize: 16.0,
+                ),
+                textAlign: pw.TextAlign.left,
+              ),
+              pw.Text(
+                dataResponse.hasil!,
+                style: const pw.TextStyle(
+                  fontSize: 16.0,
+                ),
+                textAlign: pw.TextAlign.left,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    var status = await Permission.storage.status;
+
+    if(status.isGranted) {
+      final directory = Directory('/storage/emulated/0/Download');
+
+      final file = File("${directory.path}/example.pdf");
+
+      await file.writeAsBytes(await pdf.save()).then((result) {
+        DialogFunctions(context: context, message: 'Sertifikat berhasil di unduh').okDialog(() {
+
+        });
+      });
+    } else {
+      await Permission.storage.request().then((permissionResult) async {
+        if(permissionResult.isGranted) {
+          final directory = (await getApplicationDocumentsDirectory()).path;
+
+          final file = File("$directory/example.pdf");
+          await file.writeAsBytes(await pdf.save()).then((result) {
+            DialogFunctions(context: context, message: 'Sertifikat berhasil di unduh').okDialog(() {
+
+            });
+          });
+        } else {
+          DialogFunctions(context: context, message: 'Tidak dapat melanjutkan, diperlukan izin untuk mengakses penyimpanan').okDialog(() {
+
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -137,7 +235,11 @@ class _ReportScreenState extends State<ReportScreen> {
                       ),
                       InkWell(
                         onTap: () {
+                          DialogFunctions(context: context, message: 'Mengunduh laporan menjadi PDF, Anda yakin?').optionDialog(() {
+                            generatePDF(listReport[index]);
+                          }, () {
 
+                          });
                         },
                         customBorder: const CircleBorder(),
                         child: const Padding(
