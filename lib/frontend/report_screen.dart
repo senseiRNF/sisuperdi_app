@@ -1,4 +1,3 @@
-import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:sisuperdi_app/backend/class_data/auth_class.dart';
 import 'package:sisuperdi_app/backend/class_data/responseAPI/report_response.dart';
@@ -46,12 +45,6 @@ class _ReportScreenState extends State<ReportScreen> {
         });
       });
     });
-  }
-
-  void exportExcel() {
-    var excel = Excel.createExcel();
-
-
   }
 
   @override
