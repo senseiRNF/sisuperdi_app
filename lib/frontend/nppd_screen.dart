@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sisuperdi_app/backend/class_data/nppd_class.dart';
+import 'package:sisuperdi_app/backend/class_data/responseAPI/destination_response.dart';
+import 'package:sisuperdi_app/backend/class_data/responseAPI/employee_response.dart';
+import 'package:sisuperdi_app/backend/class_data/responseAPI/transportation_response.dart';
+import 'package:sisuperdi_app/backend/functions/dialog_functions.dart';
 import 'package:sisuperdi_app/backend/functions/route_functions.dart';
+import 'package:sisuperdi_app/backend/functions/shared_preferences.dart';
+import 'package:sisuperdi_app/backend/services/destination_services.dart';
+import 'package:sisuperdi_app/backend/services/employee_services.dart';
+import 'package:sisuperdi_app/backend/services/nppd_services.dart';
+import 'package:sisuperdi_app/backend/services/transportation_services.dart';
 import 'package:sisuperdi_app/backend/variables/global.dart';
 
 class NPPDScreen extends StatefulWidget {
@@ -15,10 +25,19 @@ class _NPPDScreenState extends State<NPPDScreen> {
   TextEditingController destinationController = TextEditingController();
   TextEditingController dateDepartureController = TextEditingController();
   TextEditingController dateArrivalController = TextEditingController();
+  TextEditingController transportationController = TextEditingController();
   TextEditingController intendController = TextEditingController();
 
   DateTime dateDeparture = DateTime.now();
   DateTime dateArrival = DateTime.now();
+
+  List<DestinationResponseData> listDestination = [];
+  List<TransportationResponseData> listTransportation = [];
+  List<EmployeeResponseData> listEmployee = [];
+
+  int? userId;
+  int? destinationId;
+  int? transportationId;
 
   @override
   void initState() {
@@ -27,6 +46,79 @@ class _NPPDScreenState extends State<NPPDScreen> {
     setState(() {
       dateDepartureController.text = DateFormat('dd/MM/yyyy').format(dateDeparture);
       dateArrivalController.text = DateFormat('dd/MM/yyyy').format(dateArrival);
+    });
+
+    initLoad();
+  }
+
+  void initLoad() async {
+    await SPrefs().readAuth().then((auth) async {
+      if(auth != null) {
+        if(auth.role == 'pegawai') {
+          setState(() {
+            userId = auth.userId;
+            nameController.text = auth.name ?? '';
+          });
+
+          await DestinationServices().readAllDestination().then((resultDestination) async {
+            await TransportationServices().readAllTransportation().then((resultTransportation) {
+              List<DestinationResponseData> listDestinationTemp = [];
+              List<TransportationResponseData> listTransportationTemp = [];
+
+              if(resultDestination != null && resultDestination.data != null) {
+                for(int i = 0; i < resultDestination.data!.length; i++) {
+                  listDestinationTemp.add(resultDestination.data![i]);
+                }
+              }
+
+              if(resultTransportation != null && resultTransportation.data != null) {
+                for(int i = 0; i < resultTransportation.data!.length; i++) {
+                  listTransportationTemp.add(resultTransportation.data![i]);
+                }
+              }
+
+              setState(() {
+                listDestination = listDestinationTemp;
+                listTransportation = listTransportationTemp;
+              });
+            });
+          });
+        } else {
+          await DestinationServices().readAllDestination().then((resultDestination) async {
+            await TransportationServices().readAllTransportation().then((resultTransportation) async {
+              await EmployeeServices().readAllEmployee().then((resultEmployee) {
+                List<DestinationResponseData> listDestinationTemp = [];
+                List<TransportationResponseData> listTransportationTemp = [];
+                List<EmployeeResponseData> listEmployeeTemp = [];
+
+                if(resultDestination != null && resultDestination.data != null) {
+                  for(int i = 0; i < resultDestination.data!.length; i++) {
+                    listDestinationTemp.add(resultDestination.data![i]);
+                  }
+                }
+
+                if(resultTransportation != null && resultTransportation.data != null) {
+                  for(int i = 0; i < resultTransportation.data!.length; i++) {
+                    listTransportationTemp.add(resultTransportation.data![i]);
+                  }
+                }
+
+                if(resultEmployee != null && resultEmployee.data != null) {
+                  for(int i = 0; i < resultEmployee.data!.length; i++) {
+                    listEmployeeTemp.add(resultEmployee.data![i]);
+                  }
+                }
+
+                setState(() {
+                  listDestination = listDestinationTemp;
+                  listTransportation = listTransportationTemp;
+                  listEmployee = listEmployeeTemp;
+                });
+              });
+            });
+          });
+        }
+      }
     });
   }
 
@@ -91,6 +183,16 @@ class _NPPDScreenState extends State<NPPDScreen> {
           Padding(
             padding: const EdgeInsets.all(10.0,),
             child: TextField(
+              onTap: () {
+                DialogFunctions(context: context, message: 'Pilih Pegawai').listEmployeeDialog(listEmployee, (selection) {
+                  EmployeeResponseData response = selection;
+
+                  setState(() {
+                    userId = int.parse(response.idPegawai!);
+                    nameController.text = response.nama ?? 'Nama Tak Diketahui';
+                  });
+                });
+              },
               controller: nameController,
               readOnly: true,
               decoration: InputDecoration(
@@ -106,7 +208,18 @@ class _NPPDScreenState extends State<NPPDScreen> {
           Padding(
             padding: const EdgeInsets.all(10.0,),
             child: TextField(
+              onTap: () {
+                DialogFunctions(context: context, message: 'Pilih Tujuan').listDestinationDialog(listDestination, (selection) {
+                  DestinationResponseData response = selection;
+
+                  setState(() {
+                    destinationId = int.parse(response.idTujuan!);
+                    destinationController.text = response.tujuan ?? 'Tujuan Tak Diketahui';
+                  });
+                });
+              },
               controller: destinationController,
+              readOnly: true,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0,),
@@ -180,6 +293,31 @@ class _NPPDScreenState extends State<NPPDScreen> {
           Padding(
             padding: const EdgeInsets.all(10.0,),
             child: TextField(
+              onTap: () {
+                DialogFunctions(context: context, message: 'Pilih Transportasi').listTransportationDialog(listTransportation, (selection) {
+                  TransportationResponseData response = selection;
+
+                  setState(() {
+                    transportationId = int.parse(response.idTransportasi!);
+                    transportationController.text = response.transportasi ?? 'Tujuan Tak Diketahui';
+                  });
+                });
+              },
+              controller: transportationController,
+              readOnly: true,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0,),
+                ),
+                label: const Text(
+                  'Transportasi',
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10.0,),
+            child: TextField(
               controller: intendController,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
@@ -195,7 +333,37 @@ class _NPPDScreenState extends State<NPPDScreen> {
             padding: const EdgeInsets.all(10.0,),
             child: ElevatedButton(
               onPressed: () {
+                int daysBetween(DateTime from, DateTime to) {
+                  from = DateTime(from.year, from.month, from.day);
+                  to = DateTime(to.year, to.month, to.day);
+                  return (to.difference(from).inHours / 24).round();
+                }
 
+                DialogFunctions(context: context, message: 'Simpan data, Anda yakin?').optionDialog(() async {
+                  await NPPDServices().writeNPPD(
+                    NPPDClass(
+                      userId: userId,
+                      destinationId: destinationId,
+                      departureDate: dateDeparture,
+                      arrivalDate: dateArrival,
+                      duration: daysBetween(dateDeparture, dateArrival),
+                      transportationId: transportationId,
+                      intend: intendController.text,
+                    ),
+                  ).then((writeResult) {
+                    if(writeResult) {
+                      DialogFunctions(context: context, message: 'Sukses membuat NPPD').okDialog(() {
+                        RouteFunctions(context: context).backOffScreen(null);
+                      });
+                    } else {
+                      DialogFunctions(context: context, message: 'Tidak dapat membuat NPPD, silahkan coba lagi').okDialog(() {
+
+                      });
+                    }
+                  });
+                }, () {
+
+                });
               },
               style: ElevatedButton.styleFrom(
                 primary: GlobalColor.btnColor,

@@ -17,10 +17,11 @@ class SPrefs {
         [
           auth.userId!.toString(),
           auth.username!,
-          auth.name!,
-          auth.nip!,
+          auth.name ?? 'Nama Tak Diketahui',
+          auth.nip ?? 'NIP Tak Diketahui',
           auth.position!,
-          auth.workUnit!
+          auth.workUnit ?? 'Unit Kerja Tak Diketahui',
+          auth.role!,
         ],
       ).then((_) {
         result = true;
@@ -45,6 +46,7 @@ class SPrefs {
            nip: sPrefList![3],
            position: sPrefList![4],
            workUnit: sPrefList![5],
+           role: sPrefList![6],
          );
        }
     });

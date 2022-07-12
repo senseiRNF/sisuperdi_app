@@ -8,13 +8,13 @@ class AuthServices {
   Future<bool> loginUser(AuthClass authClass) async {
     bool result = false;
 
-    FormData formData = FormData.fromMap({
-      'username': authClass.username,
-      'password': authClass.password,
-    });
-
     await InitServices().clientAdapter().then((dio) async {
       try {
+        FormData formData = FormData.fromMap({
+          'username': authClass.username,
+          'password': authClass.password,
+        });
+
         await dio.post(
           '/user-login.php',
           data: formData,
@@ -39,6 +39,11 @@ class AuthServices {
             });
           } else {
             try {
+              FormData formData = FormData.fromMap({
+                'username': authClass.username,
+                'password': authClass.password,
+              });
+
               await dio.post(
                 '/admin-login.php',
                 data: formData,

@@ -1,27 +1,59 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:sisuperdi_app/backend/class_data/auth_class.dart';
+import 'package:sisuperdi_app/backend/class_data/report_class.dart';
+import 'package:sisuperdi_app/backend/functions/dialog_functions.dart';
 import 'package:sisuperdi_app/backend/functions/route_functions.dart';
+import 'package:sisuperdi_app/backend/functions/shared_preferences.dart';
+import 'package:sisuperdi_app/backend/services/report_services.dart';
 import 'package:sisuperdi_app/backend/variables/global.dart';
 
 class FormReportScreen extends StatefulWidget {
-  const FormReportScreen({Key? key}) : super(key: key);
+  final int npptId;
+
+  const FormReportScreen({
+    Key? key,
+    required this.npptId,
+  }) : super(key: key);
 
   @override
   State<FormReportScreen> createState() => _FormReportScreenState();
 }
 
 class _FormReportScreenState extends State<FormReportScreen> {
+  AuthClass? authClass;
+
   TextEditingController nameController = TextEditingController();
   TextEditingController positionController = TextEditingController();
   TextEditingController workUnitController = TextEditingController();
-  TextEditingController descriptionController = TextEditingController();
+  TextEditingController dateController = TextEditingController();
   TextEditingController resultController = TextEditingController();
 
-  XFile? fileProof;
+  DateTime reportDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
+
+    setState(() {
+      dateController.text = DateFormat('yyyy-MM-dd').format(reportDate);
+    });
+
+    initLoad();
+  }
+
+  void initLoad() async {
+    await SPrefs().readAuth().then((auth) {
+      setState(() {
+        authClass = auth;
+
+        if(authClass != null) {
+          nameController.text = authClass!.name ?? 'Nama Tak Diketahui';
+          positionController.text = authClass!.position ?? 'Posisi Tak Diketahui';
+          workUnitController.text = authClass!.workUnit ?? 'Unit Kerja Tak Diketahui';
+        }
+      });
+    });
   }
 
   @override
@@ -65,8 +97,8 @@ class _FormReportScreenState extends State<FormReportScreen> {
                 child: Text(
                   'Input Laporan',
                   style: TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.bold
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -130,13 +162,29 @@ class _FormReportScreenState extends State<FormReportScreen> {
           Padding(
             padding: const EdgeInsets.all(10.0,),
             child: TextField(
-              controller: descriptionController,
+              onTap: () async {
+                await showDatePicker(
+                  context: context,
+                  initialDate: reportDate,
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime(2032),
+                ).then((selectedDate) {
+                  if(selectedDate != null) {
+                    setState(() {
+                      reportDate = selectedDate;
+                      dateController.text = DateFormat('dd/MM/yyyy').format(reportDate);
+                    });
+                  }
+                });
+              },
+              controller: dateController,
+              readOnly: true,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0,),
                 ),
                 label: const Text(
-                  'Keterangan',
+                  'Tanggal',
                 ),
               ),
             ),
@@ -155,56 +203,29 @@ class _FormReportScreenState extends State<FormReportScreen> {
               ),
             ),
           ),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-            ),
-            itemCount: 1,
-            itemBuilder: (BuildContext listContext, int index) {
-              return index == 0 ?
-              Card(
-                elevation: 5.0,
-                child: InkWell(
-                  onTap: () {
-
-                  },
-                  customBorder: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4.0,),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(10.0,),
-                    child: Icon(
-                      Icons.camera_alt,
-                    ),
-                  ),
-                ),
-              ) :
-              Card(
-                elevation: 5.0,
-                child: InkWell(
-                  onTap: () {
-
-                  },
-                  customBorder: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4.0,),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(10.0,),
-                    child: Icon(
-                      Icons.image,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
           Padding(
             padding: const EdgeInsets.all(10.0,),
             child: ElevatedButton(
               onPressed: () {
+                DialogFunctions(context: context, message: 'Simpan laporan, Anda yakin?').optionDialog(() async {
+                  await ReportServices().writeReport(
+                    ReportClass(
+                      sptId: widget.npptId,
+                      employeeId: authClass!.userId,
+                      result: resultController.text,
+                      day: DateFormat('EEEE').format(reportDate),
+                      date: reportDate,
+                    ),
+                  ).then((writeResult) {
+                    if(writeResult) {
+                      DialogFunctions(context: context, message: 'Sukses membuat laporan').okDialog(() {
+                        RouteFunctions(context: context).backOffScreen(null);
+                      });
+                    }
+                  });
+                }, () {
 
+                });
               },
               style: ElevatedButton.styleFrom(
                 primary: GlobalColor.btnColor,
